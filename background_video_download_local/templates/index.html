@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="Simplest possible examples of HTML, CSS and JavaScript.">
+    <meta name="author" content="//samdutton.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta itemprop="name" content="simpl.info: simplest possible examples of HTML, CSS and JavaScript">
+    <meta itemprop="image" content="/images/icons/icon192.png">
+    <meta id="theme-color" name="theme-color" content="#fff">
+
+    <base target="_blank">
+
+    <title>video</title>
+
+    <link rel="canonical" href="https://simpl.info/mediarecorder" />
+    <link rel="stylesheet" href="../static/css/main.css">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-33848682-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        window.dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', 'UA-33848682-1');
+    </script>
+  </head>
+
+  <body>
+    <div id="container">
+      <video id="gum" autoplay muted style="display:none;"></video>
+      <video id="recorded" style="display:none;"></video>
+
+      <div>
+        <button id="record"></button>
+        <button id="download" disabled></button>
+      </div>
+    </div>
+  </body>
+  <script>
+      var mediaSource = new MediaSource();
+      mediaSource.addEventListener('sourceopen', handleSourceOpen, false);
+      var mediaRecorder;
+      var recordedBlobs;
+      var sourceBuffer;
+      
+      var gumVideo = document.querySelector('video#gum');
+      var recordedVideo = document.querySelector('video#recorded');
+      
+      var recordButton = document.querySelector('button#record');
+      var downloadButton = document.querySelector('button#download');
+
+      downloadButton.onclick = download;
+      
+      console.log(location.host);
+      // window.isSecureContext could be used for Chrome
+      var isSecureOrigin = location.protocol === 'https:' ||
+        location.host.includes('localhost');
+      if (!isSecureOrigin) {
+        alert('getUserMedia() must be run from a secure origin: HTTPS or localhost.' +
+          '\n\nChanging protocol to HTTPS');
+        location.protocol = 'HTTPS';
+      }
+      
+      var constraints = {
+        audio: true,
+        video: true
+      };
+      
+      navigator.mediaDevices.getUserMedia(
+        constraints
+      ).then(
+        successCallback,
+        errorCallback
+      );
+
+      function successCallback(stream) {
+        console.log('getUserMedia() got stream: ', stream);
+        window.stream = stream;
+        gumVideo.srcObject = stream;
+        startRecording();
+        window.setTimeout(function(){
+          stopRecording();
+          downloadButton.disabled = false;
+          download();
+        },130000);
+      }
+      
+      function errorCallback(error) {
+        console.log('navigator.getUserMedia error: ', error);
+      }
+      
+      function handleSourceOpen(event) {
+        console.log('MediaSource opened');
+        sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');
+        console.log('Source buffer: ', sourceBuffer);
+      }
+      
+      function handleDataAvailable(event) {
+        if (event.data && event.data.size > 0) {
+          recordedBlobs.push(event.data);
+        }
+      }
+      
+      function handleStop(event) {
+        console.log('Recorder stopped: ', event);
+      }
+      
+      // The nested try blocks will be simplified when Chrome 47 moves to Stable
+      function startRecording() {
+        var options = {mimeType: 'video/webm;codecs=vp9', bitsPerSecond: 100000};
+        recordedBlobs = [];
+        try {
+          mediaRecorder = new MediaRecorder(window.stream, options);
+        } catch (e0) {
+          console.log('Unable to create MediaRecorder with options Object: ', options, e0);
+          try {
+            options = {mimeType: 'video/webm;codecs=vp8', bitsPerSecond: 100000};
+            mediaRecorder = new MediaRecorder(window.stream, options);
+          } catch (e1) {
+            console.log('Unable to create MediaRecorder with options Object: ', options, e1);
+            try {
+              options = 'video/mp4';
+              mediaRecorder = new MediaRecorder(window.stream, options);
+            } catch (e2) {
+              console.error('Exception while creating MediaRecorder:', e2);
+              return;
+            }
+          }
+        }
+        console.log('Created MediaRecorder', mediaRecorder, 'with options', options);
+        downloadButton.disabled = true;
+        mediaRecorder.onstop = handleStop;
+        mediaRecorder.ondataavailable = handleDataAvailable;
+        mediaRecorder.start(10); // collect 10ms of data
+        console.log('MediaRecorder started', mediaRecorder);
+      }
+      
+      function stopRecording() {
+        mediaRecorder.stop();
+        console.log('Recorded Blobs: ', recordedBlobs);
+        recordedVideo.controls = true;
+      }
+      
+      function download() {
+        var blob = new Blob(recordedBlobs, {type: 'video/webm'});
+        var url = window.URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = _uuid()+'.mkv';
+        // 觸發點擊
+        document.body.appendChild(a);
+        a.click();
+        // 移除
+        setTimeout(function() {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      }
+
+      function _uuid() {
+        var d = Date.now();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+          d += performance.now(); //use high-precision timer if available
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (d + Math.random() * 16) % 16 | 0;
+        d = Math.floor(d / 16);
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+
+  }
+  </script>
+</html>
