@@ -31,7 +31,7 @@
     * python3.6 app_offline_upload_sqlite.py (上傳)
     * URL:https://127.0.0.1:8882/audiovideo
     * 未上傳檔案紀錄：webrtc.sqlite
-### 檔案存放位置(.mkv/.webm):webRTC_upload_viedo/static/uploads
+* 檔案存放位置(.mkv/.webm):webRTC_upload_viedo/static/uploads
 ## background_video_download_local
 * 執行方式background_video_download_local python3.6 app.py
 * 進入後會自動錄影，時間到會停止錄影，實現背景錄影。
